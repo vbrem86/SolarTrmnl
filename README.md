@@ -119,6 +119,10 @@ python3 solarmanager_byos.py --preview --sample      # nur Bild schreiben -> pre
 
 - [ ] Refresh-Rate nach Tageszeit staffeln (nachts seltener), um Akku zu sparen
 
+## Lizenz
+
+MIT, siehe [LICENSE](LICENSE). Kein offizielles Projekt von Solar Manager, TRMNL oder SBB.
+
 ## Quellen
 
 - [transport.opendata.ch (öV-Daten Schweiz)](https://transport.opendata.ch/docs.html)
