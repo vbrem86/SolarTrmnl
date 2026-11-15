@@ -1,0 +1,682 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Display-Einstellungen</title>
+<style>
+:root {
+  --bg: #f4f3ef; --card: #ffffff; --ink: #1d1d1b; --muted: #6b6a66; --line: #dddbd4;
+  --accent: #2f5d50; --accent-ink: #ffffff; --warn: #a33a22; --ok: #2f6b3a; --field: #fbfaf7;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #161615; --card: #20201e; --ink: #ecebe6; --muted: #a09e97; --line: #3a3935;
+          --accent: #7fb8a4; --accent-ink: #10201b; --warn: #f08a6c; --ok: #8fd19a; --field: #1a1a19; }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink);
+       font: 15px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+header { padding: 18px 16px 6px; max-width: 1400px; margin: 0 auto; }
+h1 { font-size: 22px; margin: 0; }
+header p { margin: 4px 0 0; color: var(--muted); }
+main { max-width: 1400px; margin: 0 auto; padding: 8px 16px 110px;
+       display: grid; gap: 18px; grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 1100px) {
+  main { grid-template-columns: minmax(0, 1fr) 560px; align-items: start; }
+  #previewCard { position: sticky; top: 12px; order: 2; }
+}
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
+.card h2 { font-size: 17px; margin: 0 0 4px; }
+.card > p.hint { margin: 0 0 12px; color: var(--muted); font-size: 13.5px; }
+.form { display: grid; gap: 18px; }
+.grid { display: grid; gap: 10px 14px; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); }
+label { display: grid; gap: 4px; font-size: 13px; color: var(--muted); }
+label.check { display: flex; align-items: center; gap: 8px; color: var(--ink); font-size: 14px; }
+input, select, button { font: inherit; color: var(--ink); }
+input[type=text], input[type=password], input[type=number], input[type=time], select {
+  width: 100%; padding: 7px 9px; border: 1px solid var(--line); border-radius: 7px; background: var(--field); }
+input:focus, select:focus, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+button { padding: 7px 13px; border-radius: 7px; border: 1px solid var(--line); background: var(--field); cursor: pointer; }
+button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
+button.icon { padding: 5px 9px; min-width: 34px; }
+button:disabled { opacity: .45; cursor: default; }
+.row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.msg { font-size: 13.5px; }
+.msg.ok { color: var(--ok); } .msg.err { color: var(--warn); }
+.item { border: 1px solid var(--line); border-radius: 8px; padding: 10px; display: grid; gap: 8px; background: var(--field); }
+.item-head { display: grid; grid-template-columns: 120px minmax(0, 1fr) auto; gap: 8px; align-items: end; }
+.item-head.series { grid-template-columns: minmax(0, 1fr) auto; }
+.item .grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); }
+.list { display: grid; gap: 10px; margin-bottom: 10px; }
+.tools { display: flex; gap: 4px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border: 1px solid var(--line);
+        border-radius: 999px; font-size: 14px; color: var(--ink); background: var(--field); cursor: pointer; }
+.chip input { margin: 0; }
+.area-title { font-weight: 600; font-size: 14px; margin: 6px 0 2px; }
+#previewCard img { width: 100%; height: auto; display: block; border: 1px solid var(--line);
+                   border-radius: 6px; background: #fff; image-rendering: pixelated; }
+#previewState { font-size: 13px; color: var(--muted); min-height: 1.4em; margin-top: 6px; }
+.savebar { position: fixed; left: 0; right: 0; bottom: 0; background: var(--card); border-top: 1px solid var(--line);
+           padding: 10px 16px; display: flex; gap: 10px; align-items: center; justify-content: flex-end; flex-wrap: wrap; }
+.savebar .msg { margin-right: auto; }
+.item.warn { border-color: var(--warn); }
+.warnbox { color: var(--warn); font-size: 13.5px; font-weight: 600; }
+.states { display: grid; gap: 6px; border-top: 1px dashed var(--line); padding-top: 8px; }
+.state-row { display: grid; grid-template-columns: 90px minmax(0, 1fr) 170px auto; gap: 8px; align-items: center; }
+@media (max-width: 560px) { .state-row { grid-template-columns: 70px minmax(0, 1fr) auto; }
+  .state-row select { grid-column: 1 / -1; grid-row: 2; } }
+.hidden { display: none !important; }
+@media (max-width: 560px) {
+  .item-head { grid-template-columns: minmax(0, 1fr) auto; }
+  .item-head > label:first-child { grid-column: 1 / -1; }
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>Display-Einstellungen</h1>
+  <p>Änderungen erscheinen sofort in der Vorschau. Das Display übernimmt sie nach dem Speichern beim nächsten Aufwachen.</p>
+</header>
+
+<main>
+  <section class="card" id="previewCard">
+    <h2>Vorschau</h2>
+    <img id="preview" alt="Vorschau des Displays" width="800" height="480">
+    <div id="previewState">Lade…</div>
+  </section>
+
+  <div class="form">
+    <section class="card">
+      <h2>Anzeige</h2>
+      <p class="hint">Allgemeines Aussehen und wie oft das Display aufwacht.</p>
+      <div class="grid">
+        <label>Titel<input type="text" data-k="display.title" maxlength="40"></label>
+        <label>Design
+          <select data-k="display.theme"><option value="light">Hell (schwarz auf weiss)</option><option value="dark">Dunkel (weiss auf schwarz)</option></select>
+        </label>
+        <label>Aktualisieren alle (Minuten)<input type="number" min="1" max="1440" step="1" data-k="display.refresh_s" data-scale="60"></label>
+        <label>Bildformat
+          <select data-k="display.image_format"><option value="png">PNG (Standard)</option><option value="bmp">BMP (ältere Firmware)</option></select>
+        </label>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <label class="check"><input type="checkbox" data-k="display.show_date"> Datum und Uhrzeit</label>
+        <label class="check"><input type="checkbox" data-k="display.show_battery"> Akkustand des Displays</label>
+      </div>
+      <div class="row" style="margin-top:12px">
+        <label class="check"><input type="checkbox" data-k="display.night_enabled"> Nachtmodus (seltener aktualisieren, spart Akku)</label>
+      </div>
+      <div class="grid" id="nightFields" style="margin-top:8px">
+        <label>Nacht von<input type="time" data-k="display.night_from"></label>
+        <label>bis<input type="time" data-k="display.night_to"></label>
+        <label>Nachts alle (Minuten)<input type="number" min="1" max="1440" data-k="display.night_refresh_s" data-scale="60"></label>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Werte</h2>
+      <p class="hint">Einzelne Zahlen als Kacheln oben oder unten. Reihenfolge mit ↑ ↓, die Grösse bestimmt auch die Breite.</p>
+      <div class="warnbox hidden" id="warnSummary" style="margin-bottom:8px"></div>
+      <div class="area-title">Oben</div>
+      <div class="list" id="tilesTop"></div>
+      <div class="area-title">Unten</div>
+      <div class="list" id="tilesBottom"></div>
+      <div class="area-title hidden" id="offTitle">Ausgeblendet</div>
+      <div class="list" id="tilesOff"></div>
+      <div class="row">
+        <button type="button" id="addTileTop">+ Wert oben</button>
+        <button type="button" id="addTileBottom">+ Wert unten</button>
+        <span class="msg" id="fieldsState"></span>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Diagramm</h2>
+      <p class="hint">Verläufe in der Mitte. Linke Achse für Leistung, rechte Achse z. B. für Temperaturen.</p>
+      <div class="row">
+        <label class="check"><input type="checkbox" data-k="chart.enabled"> Diagramm anzeigen</label>
+        <label style="min-width:200px">Zeitraum
+          <select data-k="chart.range"><option value="today">Heute (00–24 Uhr)</option><option value="24h">Letzte 24 Stunden</option></select>
+        </label>
+      </div>
+      <div class="list" id="series" style="margin-top:10px"></div>
+      <button type="button" id="addSeries">+ Verlauf</button>
+    </section>
+
+    <section class="card">
+      <h2>öV-Abfahrten</h2>
+      <p class="hint">Live-Daten von transport.opendata.ch (öV Schweiz). Ohne Spalte nutzen die Solardaten den ganzen Bildschirm.</p>
+      <div class="row">
+        <label class="check"><input type="checkbox" data-k="bus.enabled"> Abfahrten anzeigen</label>
+      </div>
+      <div id="busFields">
+        <div class="grid" style="margin-top:10px">
+          <label>Position<select data-k="bus.position"><option value="right">rechts</option><option value="left">links</option></select></label>
+          <label>Breite<select data-k="bus.width"><option value="narrow">schmal</option><option value="wide">breit (mit Ziel)</option></select></label>
+          <label>Anzahl Abfahrten<input type="number" min="1" max="8" data-k="bus.count"></label>
+        </div>
+        <div class="grid" style="margin-top:10px">
+          <label>Haltestelle<input type="text" id="station" list="stationList" placeholder="z. B. Bern, Bahnhof" autocomplete="off"></label>
+        </div>
+        <datalist id="stationList"></datalist>
+        <div id="stationState" class="msg" style="margin-top:6px"></div>
+        <div id="lineBox" class="hidden" style="margin-top:10px">
+          <div class="area-title">Linien <span style="font-weight:400;color:var(--muted)">(keine Auswahl = alle)</span></div>
+          <div class="chips" id="lines"></div>
+        </div>
+        <div class="grid" style="margin-top:10px">
+          <label>Richtung: hält danach an …<input type="text" data-k="bus.via" list="viaList" placeholder="leer = alle Richtungen" autocomplete="off"></label>
+          <label>Text für die Richtung<input type="text" data-k="bus.via_label" placeholder="z. B. Bahnhof" maxlength="40"></label>
+        </div>
+        <datalist id="viaList"></datalist>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Solar Manager</h2>
+      <p class="hint">Zugang zur Anlage. Der API-Schlüssel wird nie angezeigt; leer lassen, um den gespeicherten zu behalten.</p>
+      <div class="grid">
+        <label>Datenquelle
+          <select data-k="solarmanager.source"><option value="cloud">Cloud-API (mit Verlauf)</option><option value="local">Gateway im Heimnetz (ohne Verlauf)</option></select>
+        </label>
+        <label class="cloud-only">smId (Gateway-ID)<input type="text" data-k="solarmanager.sm_id" autocomplete="off"></label>
+        <label>API-Schlüssel<input type="password" data-k="solarmanager.api_key" id="apiKey" autocomplete="new-password"></label>
+        <label class="local-only">Gateway-IP<input type="text" data-k="solarmanager.gateway_ip" placeholder="192.168.1.x"></label>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <button type="button" id="testBtn">Verbindung testen</button>
+        <span class="msg" id="testState"></span>
+      </div>
+    </section>
+  </div>
+</main>
+
+<div class="savebar">
+  <span class="msg" id="saveState"></span>
+  <button type="button" id="resetBtn">Verwerfen</button>
+  <button type="button" class="primary" id="saveBtn">Speichern</button>
+</div>
+
+<script>
+"use strict";
+const ICONS = [["auto", "automatisch (Zustand)"], ["none", "kein Symbol"], ["sun", "☀ Sonne"],
+  ["house", "⌂ Haus"], ["today", "▦ Kalender"], ["thermo", "🌡 Thermometer"], ["drop", "💧 Tropfen"],
+  ["flame", "🔥 Flamme"], ["shower", "🚿 Dusche"], ["heatpump", "◫ Wärmepumpe"], ["bolt", "⚡ Blitz"],
+  ["grid", "⚡ Strommast"], ["battery", "🔋 Batterie"], ["car", "🚗 Auto"], ["charger", "🔌 Ladestation"],
+  ["plug", "⏻ Steckdose"], ["bus", "🚌 Bus"]];
+const STATE_ICONS = ICONS.filter(([v]) => v !== "auto");
+const HP_STATES = [{ value: 1, text: "Standby", icon: "heatpump" }, { value: 2, text: "Heizen", icon: "flame" },
+  { value: 3, text: "Warmwasser", icon: "shower" }];
+const FORMATS = [["power", "Leistung (W/kW)"], ["energy", "Energie (Wh/kWh)"], ["number", "Zahl mit Einheit"],
+  ["state", "Zustand (Text je Zahl)"]];
+const SIZES = [["s", "klein"], ["m", "mittel"], ["l", "gross"]];
+const AREAS = [["top", "oben"], ["bottom", "unten"], ["off", "ausgeblendet"]];
+const STYLES = [["area", "Fläche (schraffiert)"], ["line", "Linie dick"], ["thin", "Linie dünn"],
+  ["dash", "gestrichelt"], ["dot", "gepunktet"]];
+const AXES = [["left", "linke Achse"], ["right", "rechte Achse"]];
+
+let cfg = null, fields = null, stationInfo = null, dirty = false;
+const $ = (id) => document.getElementById(id);
+
+function el(tag, attrs, ...children) {
+  const n = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs || {})) {
+    if (k === "on") for (const [ev, fn] of Object.entries(v)) n.addEventListener(ev, fn);
+    else if (k === "text") n.textContent = v;
+    else if (v === true) n.setAttribute(k, "");
+    else if (v !== false && v != null) n.setAttribute(k, v);
+  }
+  for (const c of children.flat()) if (c != null) n.append(c);
+  return n;
+}
+function getPath(path) { return path.split(".").reduce((o, k) => (o == null ? o : o[k]), cfg); }
+function setPath(path, value) {
+  const keys = path.split("."), last = keys.pop();
+  keys.reduce((o, k) => o[k], cfg)[last] = value;
+}
+function options(list, current) {
+  return list.map(([v, t]) => el("option", { value: v, selected: v === current, text: t }));
+}
+function select(list, current, onChange) {
+  return el("select", { on: { change: (e) => onChange(e.target.value) } }, options(list, current));
+}
+function fmtVal(v) {
+  if (typeof v !== "number") return String(v);
+  return Math.abs(v) >= 100 ? String(Math.round(v)) : String(Math.round(v * 10) / 10);
+}
+function fieldName(key) { return (fields && fields.names[key]) || key; }
+
+async function api(path, body) {
+  const opt = body === undefined ? {} : {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) };
+  const r = await fetch(path, opt);
+  if (!r.ok) {
+    let msg = "HTTP " + r.status;
+    try { msg = (await r.json()).error || msg; } catch (e) { /* kein JSON */ }
+    throw new Error(msg);
+  }
+  return r;
+}
+
+// ---- einfache Felder (data-k) ------------------------------------------------
+function bindSimple() {
+  document.querySelectorAll("[data-k]").forEach((inp) => {
+    const k = inp.dataset.k, scale = Number(inp.dataset.scale || 1), v = getPath(k);
+    if (inp.type === "checkbox") inp.checked = !!v;
+    else if (inp.type === "number") inp.value = v == null ? "" : Math.round(v / scale);
+    else inp.value = v == null ? "" : v;
+  });
+  const hint = cfg.solarmanager.api_key_hint;
+  $("apiKey").placeholder = hint ? `gespeichert (${hint}) – leer = unverändert` : "noch kein Schlüssel";
+  $("station").value = cfg.bus.station || "";
+  visibility();
+}
+function onSimpleInput(e) {
+  const inp = e.target;
+  if (!inp.dataset || !inp.dataset.k) return;
+  const scale = Number(inp.dataset.scale || 1);
+  let v;
+  if (inp.type === "checkbox") v = inp.checked;
+  else if (inp.type === "number") v = inp.value === "" ? null : Number(inp.value) * scale;
+  else v = inp.value;
+  if (v === null) return;
+  setPath(inp.dataset.k, v);
+  visibility();
+  if (inp.dataset.k === "bus.via") renderVia();
+  changed();
+}
+function visibility() {
+  $("nightFields").classList.toggle("hidden", !cfg.display.night_enabled);
+  $("busFields").classList.toggle("hidden", !cfg.bus.enabled);
+  const local = cfg.solarmanager.source === "local";
+  document.querySelectorAll(".cloud-only").forEach((n) => n.classList.toggle("hidden", local));
+  document.querySelectorAll(".local-only").forEach((n) => n.classList.toggle("hidden", !local));
+}
+
+// ---- Quellen-Auswahl ---------------------------------------------------------------
+function pointGroups() {
+  if (!fields) return [];
+  const g = [{ label: "Anlage – aktuell", items: fields.stream.map((f) =>
+    [`stream:${f.key}`, `${fieldName(f.key)} · ${f.key} = ${fmtVal(f.value)}`]) }];
+  if (fields.today.length) g.push({ label: "Anlage – Summe heute", items: fields.today.map((k) =>
+    [`today:${k}`, `${fieldName(k)} heute · ${k}`]) });
+  for (const d of fields.devices) {
+    if (!d.fields.length) continue;
+    g.push({ label: `Gerät: ${d.name}${d.model && d.model !== d.name ? " (" + d.model + ")" : ""}`,
+      items: d.fields.map((f) => [`device:${d.ref}:${f.key}`,
+        `${fieldName(f.key)} · ${f.key} = ${fmtVal(f.value)}`]) });
+  }
+  return g;
+}
+function seriesGroups() {
+  if (!fields) return [];
+  const g = [{ label: "Anlage – Verlauf", items: fields.range.map((k) =>
+    [`range:${k}`, `${fieldName(k)} · ${k}`]) }];
+  for (const d of fields.devices) {
+    if (!d.hist.length) continue;
+    g.push({ label: `Gerät: ${d.name}`, items: d.hist.map((k) =>
+      [`devrange:${d.ref}:${k}`, `${fieldName(k)} · ${k}`]) });
+  }
+  return g;
+}
+function parseSource(src) {
+  const parts = (src || "").split(":"), kind = parts.shift();
+  if (kind === "device" || kind === "devrange") {
+    const field = parts.pop();
+    return { kind, ref: parts.join(":"), field };
+  }
+  return { kind, field: parts.join(":") };
+}
+function findDevice(ref) {
+  if (!fields || !ref) return null;
+  return fields.devices.find((d) => d.ref === ref || d.id === ref ||
+    (ref.startsWith("type=") && d.type === ref.slice(5))) || null;
+}
+function sourceStatus(src) {
+  if (!fields || !src) return null;
+  const p = parseSource(src);
+  if (p.kind === "device" || p.kind === "devrange") {
+    const d = findDevice(p.ref);
+    if (!d) return "Gerät nicht mehr vorhanden – bitte neu zuordnen";
+    const keys = p.kind === "device" ? d.fields.map((f) => f.key) : d.hist;
+    return keys.includes(p.field) ? null : `${d.name} liefert „${p.field}“ zurzeit nicht`;
+  }
+  const keys = { stream: fields.stream.map((f) => f.key), today: fields.today, range: fields.range }[p.kind] || [];
+  return keys.includes(p.field) ? null : `Die Anlage liefert „${p.field}“ zurzeit nicht`;
+}
+function currentValue(src) {
+  if (!fields) return undefined;
+  const p = parseSource(src);
+  let list = null;
+  if (p.kind === "stream") list = fields.stream;
+  else if (p.kind === "device") list = (findDevice(p.ref) || { fields: [] }).fields;
+  const f = list && list.find((x) => x.key === p.field);
+  return f ? f.value : undefined;
+}
+function updateWarnSummary() {
+  const n = cfg.tiles.filter((t) => t.area !== "off" && sourceStatus(t.source)).length +
+    cfg.chart.series.filter((s) => sourceStatus(s.source)).length;
+  $("warnSummary").classList.toggle("hidden", !n);
+  $("warnSummary").textContent = n === 1 ? "⚠ 1 Eintrag zeigt auf einen Wert, den es zurzeit nicht gibt (unten markiert)."
+    : `⚠ ${n} Einträge zeigen auf Werte, die es zurzeit nicht gibt (unten markiert).`;
+}
+function sourceSelect(groups, current, onChange) {
+  const s = el("select", { on: { change: (e) => onChange(e.target.value) } });
+  let found = false;
+  for (const g of groups) {
+    const og = el("optgroup", { label: g.label });
+    for (const [v, t] of g.items) {
+      if (v === current) found = true;
+      og.append(el("option", { value: v, selected: v === current, text: t }));
+    }
+    s.append(og);
+  }
+  if (!found) s.prepend(el("option", { value: current, selected: true,
+    text: current || "– bitte wählen –" }));
+  return s;
+}
+function suggest(source) {
+  const f = source.split(":").pop();
+  if (f === "operationState") return { format: "state", icon: "auto", unit: "" };
+  if (f === "temperatureOutside") return { format: "number", unit: "°C", decimals: 1, icon: "thermo" };
+  if (f.startsWith("temperature")) return { format: "number", unit: "°C", decimals: 1, icon: "drop" };
+  if (f === "soc") return { format: "number", unit: "%", decimals: 0, icon: "battery" };
+  if (/Wh(Total)?$/.test(f)) return { format: "energy", unit: "" };
+  if (/W$/.test(f) || f === "power" || f === "targetPower") return { format: "power", unit: "" };
+  return { format: "number", unit: "", decimals: 1 };
+}
+
+// ---- Kacheln ------------------------------------------------------------------
+function moveItem(list, i, dir) {
+  const j = i + dir;
+  if (j < 0 || j >= list.length) return;
+  [list[i], list[j]] = [list[j], list[i]];
+  renderTiles(); renderSeries(); changed();
+}
+function tileItem(t, i) {
+  const upd = (k) => (v) => { t[k] = v; if (k === "format" || k === "area") renderTiles(); changed(); };
+  const sameArea = cfg.tiles.map((x, j) => [x, j]).filter(([x]) => x.area === t.area).map(([, j]) => j);
+  const pos = sameArea.indexOf(i);
+  const head = el("div", { class: "item-head" },
+    el("label", {}, "Bereich", select(AREAS, t.area, upd("area"))),
+    el("label", {}, "Wert", sourceSelect(pointGroups(), t.source, (v) => {
+      t.source = v;
+      Object.assign(t, suggest(v));
+      if (t.format === "state") {
+        const d = findDevice(parseSource(v).ref);
+        t.states = d && d.type === "heatpump" ? HP_STATES.map((x) => ({ ...x })) : [];
+      }
+      if (!t.label) t.label = fieldName(v.split(":").pop());
+      renderTiles(); changed();
+    })),
+    el("div", { class: "tools" },
+      el("button", { type: "button", class: "icon", title: "nach vorne", disabled: pos <= 0,
+        on: { click: () => moveItem(cfg.tiles, i, sameArea[pos - 1] - i) } }, "↑"),
+      el("button", { type: "button", class: "icon", title: "nach hinten", disabled: pos >= sameArea.length - 1,
+        on: { click: () => moveItem(cfg.tiles, i, sameArea[pos + 1] - i) } }, "↓"),
+      el("button", { type: "button", class: "icon", title: "entfernen",
+        on: { click: () => { cfg.tiles.splice(i, 1); renderTiles(); changed(); } } }, "✕")));
+  const isNum = t.format === "number";
+  const body = el("div", { class: "grid" },
+    el("label", {}, "Beschriftung", el("input", { type: "text", value: t.label, maxlength: 30,
+      on: { input: (e) => upd("label")(e.target.value) } })),
+    el("label", {}, "Symbol", select(ICONS, t.icon, upd("icon"))),
+    el("label", {}, "Format", select(FORMATS, t.format, upd("format"))),
+    isNum ? el("label", {}, "Einheit", el("input", { type: "text", value: t.unit, maxlength: 8,
+      on: { input: (e) => upd("unit")(e.target.value) } })) : null,
+    isNum ? el("label", {}, "Nachkommastellen", select([["0", "0"], ["1", "1"], ["2", "2"], ["3", "3"]],
+      String(t.decimals), (v) => upd("decimals")(Number(v)))) : null,
+    el("label", {}, "Grösse", select(SIZES, t.size, upd("size"))));
+  const status = t.area !== "off" ? sourceStatus(t.source) : null;
+  return el("div", { class: status ? "item warn" : "item" },
+    status ? el("div", { class: "warnbox", text: "⚠ " + status }) : null,
+    head, body, t.format === "state" ? statesEditor(t) : null);
+}
+function statesEditor(t) {
+  t.states = t.states || [];
+  const cur = currentValue(t.source);
+  const rows = t.states.map((e, k) => el("div", { class: "state-row" },
+    el("input", { type: "number", value: e.value, title: "Zahl", "aria-label": "Zahl",
+      on: { input: (ev) => { e.value = Number(ev.target.value); changed(); } } }),
+    el("input", { type: "text", value: e.text, maxlength: 20, placeholder: "Text, z. B. Lädt", "aria-label": "Text",
+      on: { input: (ev) => { e.text = ev.target.value; changed(); } } }),
+    select(STATE_ICONS, e.icon, (v) => { e.icon = v; changed(); }),
+    el("button", { type: "button", class: "icon", title: "Zustand entfernen",
+      on: { click: () => { t.states.splice(k, 1); renderTiles(); changed(); } } }, "✕")));
+  const known = cur !== undefined && t.states.some((x) => x.value === Number(cur));
+  const hint = cur === undefined ? "Jeder Zahl einen Text und ein Symbol zuordnen (Symbol „automatisch“ nutzt diese)."
+    : `Das Gerät meldet gerade: ${fmtVal(cur)}${known ? "" : " (noch ohne Text)"}. Jeder Zahl einen Text und ein Symbol zuordnen.`;
+  return el("div", { class: "states" },
+    el("div", { class: "area-title", text: "Zustände" }),
+    el("div", { class: "msg", text: hint }),
+    rows,
+    el("div", { class: "row" },
+      el("button", { type: "button", on: { click: () => {
+        const next = cur !== undefined && !known ? Number(cur)
+          : Math.max(0, ...t.states.map((x) => x.value)) + 1;
+        t.states.push({ value: next, text: "", icon: "none" }); renderTiles(); changed();
+      } } }, "+ Zustand"),
+      el("button", { type: "button", on: { click: () => {
+        t.states = HP_STATES.map((x) => ({ ...x })); renderTiles(); changed();
+      } } }, "Vorlage Wärmepumpe")));
+}
+function renderTiles() {
+  const boxes = { top: $("tilesTop"), bottom: $("tilesBottom"), off: $("tilesOff") };
+  Object.values(boxes).forEach((b) => b.replaceChildren());
+  cfg.tiles.forEach((t, i) => boxes[t.area].append(tileItem(t, i)));
+  $("offTitle").classList.toggle("hidden", !cfg.tiles.some((t) => t.area === "off"));
+  for (const [a, b] of [["top", boxes.top], ["bottom", boxes.bottom]])
+    if (!b.children.length) b.append(el("div", { class: "msg", text: a === "top" ? "keine Werte oben" : "keine Werte unten" }));
+  updateWarnSummary();
+}
+function addTile(area) {
+  const groups = pointGroups();
+  const src = groups.length && groups[0].items.length ? groups[0].items[0][0] : "stream:pW";
+  const t = Object.assign({ area, source: src, label: "", icon: "none", format: "number",
+    unit: "", decimals: 1, size: "m", states: [] }, suggest(src));
+  t.label = fieldName(src.split(":").pop());
+  cfg.tiles.push(t);
+  renderTiles(); changed();
+}
+
+// ---- Verläufe -------------------------------------------------------------------
+function seriesItem(s, i) {
+  const upd = (k) => (v) => { s[k] = v; if (k === "format") renderSeries(); changed(); };
+  const head = el("div", { class: "item-head series" },
+    el("label", {}, "Verlauf", sourceSelect(seriesGroups(), s.source, (v) => {
+      s.source = v;
+      const sg = suggest(v);
+      s.format = sg.format === "state" ? "number" : sg.format;
+      s.unit = sg.unit ? sg.unit.replace("°C", "°") : "";
+      s.axis = s.format === "number" ? "right" : "left";
+      if (!s.label) s.label = fieldName(v.split(":").pop());
+      renderSeries(); changed();
+    })),
+    el("div", { class: "tools" },
+      el("button", { type: "button", class: "icon", title: "nach vorne", disabled: i === 0,
+        on: { click: () => moveItem(cfg.chart.series, i, -1) } }, "↑"),
+      el("button", { type: "button", class: "icon", title: "nach hinten", disabled: i === cfg.chart.series.length - 1,
+        on: { click: () => moveItem(cfg.chart.series, i, 1) } }, "↓"),
+      el("button", { type: "button", class: "icon", title: "entfernen",
+        on: { click: () => { cfg.chart.series.splice(i, 1); renderSeries(); changed(); } } }, "✕")));
+  const body = el("div", { class: "grid" },
+    el("label", {}, "Beschriftung", el("input", { type: "text", value: s.label, maxlength: 24,
+      on: { input: (e) => upd("label")(e.target.value) } })),
+    el("label", {}, "Darstellung", select(STYLES, s.style, upd("style"))),
+    el("label", {}, "Achse", select(AXES, s.axis, upd("axis"))),
+    el("label", {}, "Format", select(FORMATS.slice(0, 3), s.format, upd("format"))),
+    s.format === "number" ? el("label", {}, "Einheit", el("input", { type: "text", value: s.unit, maxlength: 8,
+      on: { input: (e) => upd("unit")(e.target.value) } })) : null);
+  const status = sourceStatus(s.source);
+  return el("div", { class: status ? "item warn" : "item" },
+    status ? el("div", { class: "warnbox", text: "⚠ " + status }) : null, head, body);
+}
+function renderSeries() {
+  const box = $("series");
+  box.replaceChildren(...cfg.chart.series.map(seriesItem));
+  if (!cfg.chart.series.length) box.append(el("div", { class: "msg", text: "keine Verläufe" }));
+  $("addSeries").disabled = cfg.chart.series.length >= 6;
+  updateWarnSummary();
+}
+function addSeries() {
+  const g = seriesGroups();
+  const src = g.length && g[0].items.length ? g[0].items[0][0] : "range:pW";
+  const sg = suggest(src);
+  cfg.chart.series.push({ source: src, label: fieldName(src.split(":").pop()), style: "thin",
+    axis: sg.format === "number" ? "right" : "left", format: sg.format === "state" ? "number" : sg.format,
+    unit: sg.unit || "" });
+  renderSeries(); changed();
+}
+
+// ---- öV --------------------------------------------------------------------------------
+let stationTimer = null;
+function onStationInput(e) {
+  clearTimeout(stationTimer);
+  const q = e.target.value;
+  stationTimer = setTimeout(async () => {
+    try {
+      const r = await (await api("/config/api/stations?q=" + encodeURIComponent(q))).json();
+      $("stationList").replaceChildren(...r.stations.map((n) => el("option", { value: n })));
+      if (r.stations.includes(q)) selectStation(q);
+    } catch (err) { /* Suche ist optional */ }
+  }, 300);
+}
+async function selectStation(name) {
+  name = name.trim();
+  if (!name || name === stationInfo?.station) return;
+  if (name !== cfg.bus.station) {
+    cfg.bus.station = name; cfg.bus.lines = []; cfg.bus.via = ""; cfg.bus.via_label = "";
+    bindSimple(); changed();
+  }
+  await loadStation();
+}
+async function loadStation() {
+  stationInfo = null;
+  $("lineBox").classList.add("hidden");
+  if (!cfg.bus.station) { $("stationState").textContent = ""; return; }
+  $("stationState").className = "msg";
+  $("stationState").textContent = "Lade Linien…";
+  try {
+    stationInfo = await (await api("/config/api/station?name=" + encodeURIComponent(cfg.bus.station))).json();
+    $("stationState").textContent = stationInfo.lines.length
+      ? `${stationInfo.station}: ${stationInfo.lines.length} Linien in den nächsten Abfahrten`
+      : `${stationInfo.station}: zurzeit keine Abfahrten`;
+    renderLines(); renderVia();
+  } catch (err) {
+    $("stationState").className = "msg err";
+    $("stationState").textContent = "Haltestelle nicht gefunden oder öV-Daten nicht erreichbar: " + err.message;
+  }
+}
+function renderLines() {
+  if (!stationInfo) return;
+  $("lineBox").classList.toggle("hidden", !stationInfo.lines.length);
+  const all = Array.from(new Set([...stationInfo.lines, ...cfg.bus.lines]));
+  $("lines").replaceChildren(...all.map((ln) => el("label", { class: "chip" },
+    el("input", { type: "checkbox", checked: cfg.bus.lines.includes(ln), on: { change: (e) => {
+      cfg.bus.lines = e.target.checked ? [...cfg.bus.lines, ln] : cfg.bus.lines.filter((x) => x !== ln);
+      renderVia(); changed();
+    } } }), ln)));
+}
+function renderVia() {
+  if (!stationInfo) return;
+  const sel = cfg.bus.lines;
+  const stops = stationInfo.stops.filter((s) => !sel.length || s.lines.some((l) => sel.includes(l)));
+  $("viaList").replaceChildren(...stops.map((s) => el("option", { value: s.name,
+    label: `${s.count}× · Linie ${s.lines.join(", ")}` })));
+}
+
+// ---- Vorschau, Felder, Test, Speichern ------------------------------------------------
+let previewTimer = null, previewSeq = 0, lastUrl = null;
+function changed() {
+  dirty = true;
+  $("saveState").className = "msg";
+  $("saveState").textContent = "Ungespeicherte Änderungen";
+  clearTimeout(previewTimer);
+  previewTimer = setTimeout(preview, 600);
+}
+async function preview() {
+  const seq = ++previewSeq;
+  $("previewState").textContent = "Vorschau wird erstellt…";
+  try {
+    const blob = await (await api("/config/api/preview", cfg)).blob();
+    if (seq !== previewSeq) return;
+    if (lastUrl) URL.revokeObjectURL(lastUrl);
+    lastUrl = URL.createObjectURL(blob);
+    $("preview").src = lastUrl;
+    $("previewState").textContent = "Vorschau mit aktuellen Daten, Stand " + new Date().toLocaleTimeString("de-CH", { hour: "2-digit", minute: "2-digit" });
+  } catch (err) {
+    if (seq === previewSeq) $("previewState").textContent = "Vorschau fehlgeschlagen: " + err.message;
+  }
+}
+async function loadFields() {
+  $("fieldsState").className = "msg";
+  $("fieldsState").textContent = "Lese verfügbare Werte der Anlage…";
+  try {
+    fields = await (await api("/config/api/fields", cfg)).json();
+    const n = fields.stream.length + fields.devices.reduce((a, d) => a + d.fields.length, 0);
+    $("fieldsState").textContent = `${n} Werte, ${fields.devices.length} Geräte gefunden`;
+  } catch (err) {
+    fields = null;
+    $("fieldsState").className = "msg err";
+    $("fieldsState").textContent = "Werte der Anlage nicht lesbar: " + err.message;
+  }
+  renderTiles(); renderSeries();
+}
+async function testConnection() {
+  $("testState").className = "msg";
+  $("testState").textContent = "Teste…";
+  try {
+    const r = await (await api("/config/api/test", cfg)).json();
+    $("testState").className = "msg ok";
+    $("testState").textContent = r.message;
+    loadFields(); preview();
+  } catch (err) {
+    $("testState").className = "msg err";
+    $("testState").textContent = err.message;
+  }
+}
+async function save() {
+  $("saveBtn").disabled = true;
+  try {
+    const r = await (await api("/config/api/config", cfg)).json();
+    cfg = r.config;
+    dirty = false;
+    bindSimple();
+    $("saveState").className = "msg ok";
+    $("saveState").textContent = `Gespeichert. Das Display übernimmt es beim nächsten Aufwachen (Intervall jetzt ${Math.round(r.refresh_s / 60)} Min.).`;
+  } catch (err) {
+    $("saveState").className = "msg err";
+    $("saveState").textContent = "Speichern fehlgeschlagen: " + err.message;
+  } finally {
+    $("saveBtn").disabled = false;
+  }
+}
+async function load() {
+  cfg = await (await api("/config/api/config")).json();
+  dirty = false;
+  bindSimple(); renderTiles(); renderSeries();
+  $("saveState").textContent = "";
+  preview();
+  loadFields();
+  stationInfo = null;
+  loadStation();
+}
+
+document.addEventListener("input", (e) => { if (e.target.dataset && e.target.dataset.k) onSimpleInput(e); });
+document.addEventListener("change", (e) => {
+  if (e.target.dataset && e.target.dataset.k && e.target.tagName === "SELECT") onSimpleInput(e);
+});
+$("station").addEventListener("input", onStationInput);
+$("station").addEventListener("change", (e) => selectStation(e.target.value));
+$("addTileTop").addEventListener("click", () => addTile("top"));
+$("addTileBottom").addEventListener("click", () => addTile("bottom"));
+$("addSeries").addEventListener("click", addSeries);
+$("testBtn").addEventListener("click", testConnection);
+$("saveBtn").addEventListener("click", save);
+$("resetBtn").addEventListener("click", () => { if (!dirty || confirm("Änderungen verwerfen?")) load(); });
+window.addEventListener("beforeunload", (e) => { if (dirty) { e.preventDefault(); e.returnValue = ""; } });
+load().catch((err) => { $("previewState").textContent = "Einstellungen nicht ladbar: " + err.message; });
+</script>
+</body>
+</html>

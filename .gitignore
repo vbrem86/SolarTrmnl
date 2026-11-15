@@ -1,5 +1,7 @@
 # Zugangsdaten und persönliche Einstellungen
 .env
+config.json
+config.json.tmp
 # lokale Editor- und Systemdateien
 .vscode/
 .idea/

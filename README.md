@@ -23,11 +23,16 @@ transport.opendata.ch ───┘
 - rechts: nächste Busabfahrten (Linie, Zeit, Verspätung als „+2“)
 - Kopfzeile: Datum, Uhrzeit und Akkustand des Displays
 
+Alles davon lässt sich im Browser unter `http://<Raspberry-IP>:8080/config` anpassen (siehe unten).
+
 ## Ordner
 
 | Pfad | Inhalt |
 |---|---|
-| `server/solarmanager_byos.py` | Der Server: Daten holen, Bild zeichnen, TRMNL-Protokoll |
+| `server/solarmanager_byos.py` | Der Server: TRMNL-Protokoll und Einstellungsseite `/config` |
+| `server/sm_config.py`, `sm_data.py`, `sm_render.py` | Einstellungen, Datenabruf, Bild zeichnen |
+| `server/sm_qr.py` | kleiner QR-Code-Encoder (ohne Abhängigkeiten) für die Einrichtungsseite |
+| `server/config.html` | Einstellungsseite (ohne externe Bibliotheken) |
 | `server/trmnl_emulator.py` | Geräte-Emulator zum Testen ohne Hardware |
 | `server/.env.example` | Vorlage für Zugangsdaten und Einstellungen |
 | `server/solarmanager.service` | systemd-Dienst für den Autostart |
@@ -47,20 +52,45 @@ python3 solarmanager_byos.py --test     # Zugangsdaten prüfen, zeigt Rohdaten
 python3 solarmanager_byos.py            # Server starten, Vorschau: http://localhost:8080/
 ```
 
-Einstellungen in `server/.env` (die Datei ist in `.gitignore` und wird nicht eingecheckt):
+Beim ersten Start ohne Zugangsdaten zeigt das Display „Noch nicht eingerichtet“ mit der Adresse
+der Einstellungsseite und einem QR-Code dazu: Handy im selben WLAN, Code scannen, smId und API-Key
+eintragen, speichern. Alternativ reichen smId und API-Key in `server/.env` (Solar Manager Web-App → Profil →
+Cloud-API-Schlüssel, **ohne** „Erneuerung erlauben“ erstellen). Alles Weitere geht über die
+Einstellungsseite.
 
-| Variable | Bedeutung |
+### Einstellungsseite `/config`
+
+`http://<Raspberry-IP>:8080/config` zeigt eine Live-Vorschau, die sich bei jeder Änderung
+aktualisiert. Erst „Speichern“ übernimmt die Einstellungen; das Display holt sie beim nächsten
+Aufwachen.
+
+| Bereich | Einstellungen |
 |---|---|
-| `SM_ID`, `SM_API_KEY` | Solar Manager smId und Cloud-API-Schlüssel (Web-App → Profil; Schlüssel **ohne** „Erneuerung erlauben“ erstellen) |
-| `BUS_STATION` | Haltestelle wie auf sbb.ch, z. B. `"Bern, Bahnhof"`. Leer = Bus-Spalte zeigt einen Hinweis |
-| `BUS_LINES` | nur diese Linien, z. B. `"10,19"` (leer = alle) |
-| `BUS_VIA` | Richtung: nur Kurse, die danach an einer Haltestelle mit diesem Namensanfang halten |
-| `BUS_VIA_LABEL` | kurzer Text für die Richtung unter „Bus“ |
-| `REFRESH_SECONDS` | wie oft das Display aufwacht (Standard 300). Kürzer = aktueller, aber mehr Akkuverbrauch |
-| `IMAGE_FORMAT` | `png` (Standard) oder `bmp` für ältere Firmware |
+| Anzeige | Titel, hell/dunkel, Datum, Akkustand, Aktualisierungsintervall, Nachtmodus (seltener aktualisieren, spart Akku), PNG/BMP |
+| Werte | beliebige Werte der Anlage als Kacheln oben oder unten: Quelle, Beschriftung, Symbol, Format, Einheit, Nachkommastellen, Grösse, Reihenfolge |
+| Diagramm | an/aus, heute oder letzte 24 h, Verläufe mit Darstellung (Fläche, Linie, gestrichelt, …) und Achse links/rechts |
+| öV-Abfahrten | an/aus (ohne: Solar über die ganze Breite), links/rechts, schmal/breit, Haltestelle mit Suche, Linien, Richtung, Anzahl |
+| Solar Manager | Cloud oder Gateway, smId, API-Key, Verbindung testen |
 
-Die Richtung wird über die Halteliste bestimmt, nicht über die Endstation: Viele Linien fahren
-über das gewünschte Ziel hinaus oder enden an einer Nachbarhaltestelle.
+Die Auswahl der Werte zeigt alles, was die Anlage liefert: aktuelle Werte, Tagessummen und
+Verläufe der Anlage sowie jedes Geräts (z. B. Wärmepumpe, Wechselrichter, Zähler, Ladestation,
+Batterien) mit dem Namen aus der Solar-Manager-App. Nur Zahlenwerte; Texte und verschachtelte
+Angaben werden nicht angeboten.
+
+- **Zustände** (z. B. `operationState`): Format „Zustand“, dann jeder Zahl einen Text und ein
+  Symbol zuordnen; das Menü zeigt, welche Zahl das Gerät gerade meldet. Für die Wärmepumpe gibt es
+  eine Vorlage (1 Standby, 2 Heizen, 3 Warmwasser), Symbol „automatisch“ wechselt mit dem Zustand.
+- **Mehrere gleiche Geräte** (z. B. zwei Batterien) werden über ihre Geräte-ID zugeordnet, einzelne
+  über ihren Typ. Wird ein Gerät ersetzt oder entfernt, markiert das Menü die betroffenen Einträge
+  („Gerät nicht mehr vorhanden – bitte neu zuordnen“), das Display zeigt dort „–“.
+- Nur mit einer Anlage (Wärmepumpe, Wechselrichter, Zähler) und Beispieldaten getestet.
+
+Die Einstellungen liegen in `server/config.json` (nicht im Git, nur für den Besitzer lesbar).
+Der API-Key wird nie an den Browser geschickt. Die Seite ist im ganzen Heimnetz erreichbar;
+wer sie schützen will, setzt `CONFIG_PASSWORD` in der `.env` (Benutzername beliebig).
+
+Die Richtung der Busse wird über die Halteliste bestimmt, nicht über die Endstation: Viele Linien
+fahren über das gewünschte Ziel hinaus oder enden an einer Nachbarhaltestelle.
 
 ### Dauerhaft auf dem Raspberry
 
@@ -92,7 +122,7 @@ Zeigt das Display „MAC not registered“, fragt es noch die TRMNL-Cloud: Custo
 → Bild holen, Fehler per `/api/log`), prüft das Bild auf 800x480 / 1 Bit und zeigt es im Browser.
 
 ```bash
-python3 solarmanager_byos.py --sample                # Server mit Beispieldaten, ohne Zugangsdaten
+python3 solarmanager_byos.py --sample                # Beispieldaten, auch /config ausprobieren
 python3 trmnl_emulator.py --interval 15              # Display: http://localhost:8090/
 python3 trmnl_emulator.py --once emulator.png        # einmal abrufen, als Datei speichern
 python3 solarmanager_byos.py --preview --sample      # nur Bild schreiben -> preview.png
@@ -106,6 +136,9 @@ python3 solarmanager_byos.py --preview --sample      # nur Bild schreiben -> pre
   Wärmepumpe = Gerät im Stream mit `operationState` bzw. `temperatureOutside`;
   `operationState` 1 = Standby, 2 = Heizen, 3 = Warmwasser (an einer Stiebel-Anlage beobachtet,
   nicht offiziell dokumentiert).
+- Quellen-Schlüssel in `config.json`: `stream:<feld>`, `device:<gerät>:<feld>`, `today:<feld>`
+  (Kacheln), `range:<feld>`, `devrange:<gerät>:<feld>` (Diagramm); `<gerät>` ist die Geräte-ID oder
+  `type=heatpump` usw. Gerätenamen aus `/v3/users/{smId}/devices`.
 - Abrufe werden zwischengespeichert: Stream 30 s, Verlauf 5 min, Bus 60 s
   (Cloud-Limit: 1000 Stream-Abfragen pro Stunde).
 - **Bus**: [transport.opendata.ch](https://transport.opendata.ch/docs.html) `/v1/stationboard`,
@@ -117,7 +150,7 @@ python3 solarmanager_byos.py --preview --sample      # nur Bild schreiben -> pre
 
 ## Offene Punkte
 
-- [ ] Refresh-Rate nach Tageszeit staffeln (nachts seltener), um Akku zu sparen
+- [ ] Einstellungsseite auf einem echten Handy testen (geprüft nur in Chrome ab ca. 500 px Breite)
 
 ## Lizenz
 
