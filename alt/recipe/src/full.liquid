@@ -1,0 +1,56 @@
+{%- assign pv = pW | default: 0 -%}
+{%- assign cons = cW | default: 0 -%}
+{%- assign bc = bcW | default: 0 -%}
+{%- assign bd = bdW | default: 0 -%}
+{%- assign grid = cons | plus: bc | minus: pv | minus: bd -%}
+{%- assign grid_abs = grid | abs -%}
+{%- assign hp = nil -%}
+{%- for d in devices -%}{%- if d.temperature and hp == nil -%}{%- assign hp = d -%}{%- endif -%}{%- endfor -%}
+
+<div class="view view--full">
+  <div class="layout layout--col gap--large">
+    <div class="columns">
+      <div class="column">
+        <span class="label">PV-Leistung</span>
+        <span class="value value--xlarge">{{ pv | round }}<span class="value--unit">W</span></span>
+      </div>
+      <div class="column">
+        <span class="label">Hausverbrauch</span>
+        <span class="value value--xlarge">{{ cons | round }}<span class="value--unit">W</span></span>
+      </div>
+    </div>
+    <div class="columns">
+      <div class="column">
+        <span class="label">Netz</span>
+        <span class="value value--large">{{ grid_abs | round }}<span class="value--unit">W</span></span>
+        <span class="description">{% if grid >= 0 %}Bezug{% else %}Einspeisung{% endif %}</span>
+      </div>
+      <div class="column">
+        <span class="label">Batterie</span>
+        {% if bc > 0 %}
+          <span class="value value--large">+{{ bc | round }}<span class="value--unit">W</span></span>
+          <span class="description">laden</span>
+        {% elsif bd > 0 %}
+          <span class="value value--large">-{{ bd | round }}<span class="value--unit">W</span></span>
+          <span class="description">entladen</span>
+        {% else %}
+          <span class="value value--large">–</span>
+          <span class="description">Standby</span>
+        {% endif %}
+      </div>
+    </div>
+    {% if hp %}
+    <div class="columns">
+      <div class="column">
+        <span class="label">{{ heizung_label | default: "Wärmepumpe" }}</span>
+        <span class="value value--large">{{ hp.temperature | round: 1 }}<span class="value--unit">°C</span></span>
+        <span class="description">{% if hp.activeDevice == 1 %}aktiv{% else %}inaktiv{% endif %}{% if hp.signal != "connected" %} · getrennt{% endif %}</span>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+  <div class="title_bar">
+    <span class="title">Solarmanager</span>
+    <span class="instance">{{ t | date: "%d.%m. %H:%M" }}</span>
+  </div>
+</div>

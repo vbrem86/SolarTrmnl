@@ -1,0 +1,86 @@
+{%- comment -%}
+  Solarmanager — TRMNL Plugin Markup (Basis-Version)
+  Einfügen unter: Plugin → Markup (Full)
+
+  Erwartet die JSON-Antwort von GET /v2/point als Polling-Response:
+  { pW, cW, bcW, bdW, devices: [...], t, ... }
+
+  Die Wärmepumpe/der Boiler wird dynamisch erkannt (erstes Device mit
+  "temperature"-Feld), nicht über eine feste Array-Position — das bleibt
+  auch stabil, wenn sich die Geräte-Reihenfolge am Gateway mal ändert.
+{%- endcomment -%}
+
+{%- assign pv = pW | default: 0 -%}
+{%- assign consumption = cW | default: 0 -%}
+{%- assign batt_charge = bcW | default: 0 -%}
+{%- assign batt_discharge = bdW | default: 0 -%}
+{%- assign grid = consumption | plus: batt_charge | minus: pv | minus: batt_discharge -%}
+{%- assign grid_abs = grid | abs -%}
+
+{%- comment -%}
+  Webhook-Modus: das Skript liefert "heatpump" direkt.
+  Polling-Modus: "heatpump" fehlt, dann wird es im devices-Array gesucht.
+{%- endcomment -%}
+{%- if heatpump == nil -%}
+  {%- for d in devices -%}
+    {%- if d.temperature and heatpump == nil -%}
+      {%- assign heatpump = d -%}
+    {%- endif -%}
+  {%- endfor -%}
+{%- endif -%}
+
+<div class="view view--full">
+  <div class="layout layout--col gap--large">
+
+    <div class="columns">
+      <div class="column">
+        <span class="label">PV-Leistung</span>
+        <span class="value value--xlarge">{{ pv | round }}<span class="value--unit">W</span></span>
+      </div>
+      <div class="column">
+        <span class="label">Hausverbrauch</span>
+        <span class="value value--xlarge">{{ consumption | round }}<span class="value--unit">W</span></span>
+      </div>
+    </div>
+
+    <div class="columns">
+      <div class="column">
+        <span class="label">Netz</span>
+        <span class="value value--large">{{ grid_abs | round }}<span class="value--unit">W</span></span>
+        <span class="description">{% if grid >= 0 %}Bezug{% else %}Einspeisung{% endif %}</span>
+      </div>
+      <div class="column">
+        <span class="label">Batterie</span>
+        {% if batt_charge > 0 %}
+          <span class="value value--large">+{{ batt_charge | round }}<span class="value--unit">W</span></span>
+          <span class="description">laden</span>
+        {% elsif batt_discharge > 0 %}
+          <span class="value value--large">-{{ batt_discharge | round }}<span class="value--unit">W</span></span>
+          <span class="description">entladen</span>
+        {% else %}
+          <span class="value value--large">–</span>
+          <span class="description">Standby</span>
+        {% endif %}
+      </div>
+    </div>
+
+    {% if heatpump %}
+    <div class="columns">
+      <div class="column">
+        <span class="label">{{ heizung_label | default: "Wärmepumpe" }}</span>
+        <span class="value value--large">{{ heatpump.temperature | round: 1 }}<span class="value--unit">°C</span></span>
+        <span class="description">
+          {% if heatpump.activeDevice == 1 %}aktiv{% else %}inaktiv{% endif %}
+          {% if heatpump.signal != "connected" %} · getrennt{% endif %}
+        </span>
+      </div>
+    </div>
+    {% endif %}
+
+  </div>
+
+  <div class="title_bar">
+    <span class="title">Solarmanager</span>
+    <span class="instance">{{ t }}</span>
+  </div>
+</div>

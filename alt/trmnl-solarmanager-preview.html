@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>Solarmanager · TRMNL Vorschau</title>
+<style>
+  :root {
+    --paper: #ffffff;
+    --ink: #000000;
+    --ink-soft: #4a4a4a;
+    --ink-faint: #9a9a9a;
+    --hairline: #000000;
+    --bg: #e9e9e6;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: -apple-system, "Helvetica Neue", Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 32px 16px 64px;
+  }
+
+  .rig-label {
+    font-size: 12px;
+    letter-spacing: 0.02em;
+    color: #6b6b6b;
+    margin-bottom: 18px;
+    text-align: center;
+    max-width: 480px;
+    line-height: 1.5;
+  }
+
+  .rig-label b { color: #1a1a1a; }
+
+  /* ---- e-ink device frame ---- */
+  .device {
+    width: min(860px, 94vw);
+    background: #d9d9d6;
+    border-radius: 22px;
+    padding: 22px;
+    box-shadow: 0 1px 0 rgba(255,255,255,0.6) inset, 0 18px 40px rgba(0,0,0,0.18);
+  }
+
+  .screen {
+    background: var(--paper);
+    border-radius: 6px;
+    aspect-ratio: 800 / 480;
+    width: 100%;
+    position: relative;
+    overflow: hidden;
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,0.06);
+  }
+
+  /* subtle e-ink grain */
+  .screen::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image: radial-gradient(rgba(0,0,0,0.035) 0.5px, transparent 0.5px);
+    background-size: 3px 3px;
+    mix-blend-mode: multiply;
+    opacity: 0.5;
+  }
+
+  .content {
+    position: absolute;
+    inset: 0;
+    padding: clamp(18px, 3.4vw, 34px);
+    display: flex;
+    flex-direction: column;
+    font-family: "Courier New", ui-monospace, monospace;
+  }
+
+  .top-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    border-bottom: 3px solid var(--ink);
+    padding-bottom: clamp(6px, 1vw, 12px);
+    margin-bottom: clamp(10px, 2vw, 20px);
+  }
+
+  .site-name {
+    font-size: clamp(14px, 2.4vw, 20px);
+    font-weight: 700;
+    letter-spacing: 0.01em;
+  }
+
+  .timestamp {
+    font-size: clamp(10px, 1.5vw, 13px);
+    color: var(--ink-soft);
+  }
+
+  .grid {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    gap: clamp(10px, 1.6vw, 18px);
+  }
+
+  .cell {
+    border: 2px solid var(--ink);
+    border-radius: 4px;
+    padding: clamp(8px, 1.6vw, 16px);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    position: relative;
+  }
+
+  .cell .label {
+    font-size: clamp(9px, 1.3vw, 12px);
+    letter-spacing: 0.06em;
+    color: var(--ink-soft);
+    margin-bottom: clamp(4px, 1vw, 8px);
+  }
+
+  .cell .value {
+    font-size: clamp(22px, 4.6vw, 42px);
+    font-weight: 700;
+    line-height: 1;
+  }
+
+  .cell .value .unit {
+    font-size: 0.42em;
+    font-weight: 400;
+    margin-left: 4px;
+  }
+
+  .cell .sub {
+    margin-top: clamp(4px, 1vw, 8px);
+    font-size: clamp(9px, 1.3vw, 12px);
+    color: var(--ink-soft);
+  }
+
+  .cell.flag::before {
+    content: attr(data-flag);
+    position: absolute;
+    top: clamp(6px, 1.2vw, 10px);
+    right: clamp(8px, 1.4vw, 14px);
+    font-size: clamp(8px, 1.2vw, 11px);
+    letter-spacing: 0.05em;
+    border: 1px solid var(--ink);
+    border-radius: 3px;
+    padding: 1px 6px;
+  }
+
+  .cell.flag[data-flag=""]::before { display: none; }
+
+  .bar-track {
+    margin-top: clamp(6px, 1.2vw, 10px);
+    height: 8px;
+    border: 1.5px solid var(--ink);
+    border-radius: 3px;
+    overflow: hidden;
+    background: repeating-linear-gradient(45deg, #fff, #fff 3px, #ddd 3px, #ddd 4px);
+  }
+
+  .bar-fill {
+    height: 100%;
+    background: var(--ink);
+  }
+
+  .foot {
+    margin-top: clamp(8px, 1.4vw, 14px);
+    font-size: clamp(9px, 1.3vw, 12px);
+    color: var(--ink-faint);
+    text-align: right;
+  }
+
+  /* ---- controls panel below the "device" ---- */
+  .panel {
+    width: min(860px, 94vw);
+    margin-top: 28px;
+    background: #fff;
+    border: 1px solid #d8d8d5;
+    border-radius: 10px;
+    padding: 18px 20px 20px;
+  }
+
+  .panel h2 {
+    font-size: 13px;
+    letter-spacing: 0.03em;
+    color: #555;
+    margin: 0 0 10px;
+    font-weight: 600;
+  }
+
+  textarea {
+    width: 100%;
+    min-height: 120px;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 12.5px;
+    line-height: 1.5;
+    padding: 12px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    resize: vertical;
+    background: #fafafa;
+    color: #222;
+  }
+
+  .row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-top: 12px;
+    flex-wrap: wrap;
+  }
+
+  button {
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 9px 16px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+  }
+
+  button.primary { background: #111; color: #fff; }
+  button.primary:hover { background: #000; }
+  button.ghost { background: transparent; color: #444; border: 1px solid #ccc; }
+  button.ghost:hover { border-color: #999; }
+
+  .status {
+    font-size: 12.5px;
+    color: #7a1f1f;
+    min-height: 16px;
+  }
+
+  .status.ok { color: #1f6d3a; }
+
+  .hint {
+    font-size: 11.5px;
+    color: #8a8a8a;
+    margin-top: 10px;
+    line-height: 1.5;
+  }
+
+  code {
+    background: #f0f0ee;
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-size: 11px;
+  }
+</style>
+</head>
+<body>
+
+  <div class="rig-label">
+    <b>Nur eine Vorschau</b> — kein echtes TRMNL-Gerät nötig. Füg unten die
+    Antwort von <code>curl https://192.168.1.231/v2/point -k -H "X-API-Key: ..." | jq</code>
+    ein und klick auf „Anzeigen“.
+  </div>
+
+  <div class="device">
+    <div class="screen">
+      <div class="content" id="content">
+        <!-- rendered by renderData() -->
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>SOLARMANAGER-JSON</h2>
+    <textarea id="jsonInput" spellcheck="false"></textarea>
+    <div class="row">
+      <button class="primary" id="renderBtn">Anzeigen</button>
+      <button class="ghost" id="sampleBtn">Beispieldaten laden</button>
+      <span class="status" id="status"></span>
+    </div>
+    <div class="hint">
+      Zeigt exakt die Felder, die auch das TRMNL-Template später verwenden würde:
+      PV-Leistung (<code>pW</code>), Verbrauch (<code>cW</code>), Netz
+      (<code>cW + bcW − pW − bdW</code>), Batterie (<code>bcW</code>/<code>bdW</code>)
+      und die Wärmepumpe (drittes Gerät im <code>devices</code>-Array, erkannt an
+      <code>temperature</code> + <code>operationState</code>).
+    </div>
+  </div>
+
+<script>
+  const SAMPLE = {"bcW":0,"bcWh":0,"bdW":0,"bdWh":0,"cPvWh":0,"cW":2642,"cWh":7.33,"devices":[{"_id":"000000000000000000000001","eWh":0,"iWh":0,"power":0,"signal":"connected"},{"_id":"000000000000000000000002","eWh":0,"iWh":7.33,"power":2642,"signal":"connected"},{"_id":"000000000000000000000003","activeDevice":0,"heatingAdjustment":2,"operationState":1,"signal":"connected","temperature":55.70000076293945}],"eWh":0,"iWh":7.33,"iv":10,"pW":0,"pWh":0,"scWh":0,"t":"2026-09-18T18:16:35.113Z","v":3};
+
+  const input = document.getElementById('jsonInput');
+  const statusEl = document.getElementById('status');
+  const content = document.getElementById('content');
+
+  function fmtTime(iso) {
+    try {
+      const d = new Date(iso);
+      return d.toLocaleString('de-CH', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+    } catch (e) {
+      return iso || '–';
+    }
+  }
+
+  function findHeatpump(devices) {
+    if (!Array.isArray(devices)) return null;
+    return devices.find(d => 'temperature' in d && 'operationState' in d) || null;
+  }
+
+  function renderData(data) {
+    const pW = data.pW ?? 0;
+    const cW = data.cW ?? 0;
+    const bcW = data.bcW ?? 0;
+    const bdW = data.bdW ?? 0;
+    const grid = cW + bcW - pW - bdW;
+    const gridAbs = Math.abs(Math.round(grid));
+    const gridLabel = grid >= 0 ? 'Bezug' : 'Einspeisung';
+
+    let battLine = 'Standby';
+    let battPct = 0;
+    if (bcW > 0) { battLine = '+' + bcW + ' W laden'; battPct = Math.min(100, bcW / 20); }
+    else if (bdW > 0) { battLine = '−' + bdW + ' W entladen'; battPct = Math.min(100, bdW / 20); }
+
+    const hp = findHeatpump(data.devices);
+    const hpTemp = hp ? Number(hp.temperature).toFixed(1) : '–';
+    const hpActive = hp ? (hp.activeDevice === 1) : false;
+    const hpSignal = hp ? hp.signal : '';
+
+    content.innerHTML = `
+      <div class="top-row">
+        <span class="site-name">Solarmanager</span>
+        <span class="timestamp">${fmtTime(data.t)}</span>
+      </div>
+      <div class="grid">
+        <div class="cell">
+          <span class="label">PV-LEISTUNG</span>
+          <span class="value">${Math.round(pW)}<span class="unit">W</span></span>
+        </div>
+        <div class="cell">
+          <span class="label">HAUSVERBRAUCH</span>
+          <span class="value">${Math.round(cW)}<span class="unit">W</span></span>
+        </div>
+        <div class="cell">
+          <span class="label">NETZ</span>
+          <span class="value">${gridAbs}<span class="unit">W</span></span>
+          <span class="sub">${gridLabel}</span>
+        </div>
+        <div class="cell flag" data-flag="${hpSignal === 'connected' ? '' : 'GETRENNT'}">
+          <span class="label">WÄRMEPUMPE</span>
+          <span class="value">${hpTemp}<span class="unit">°C</span></span>
+          <span class="sub">${hpActive ? 'aktiv' : 'inaktiv'}</span>
+        </div>
+      </div>
+      <div class="foot">Batterie: ${battLine}</div>
+    `;
+  }
+
+  function tryRender() {
+    const raw = input.value.trim();
+    if (!raw) {
+      statusEl.textContent = 'Bitte JSON einfügen.';
+      statusEl.className = 'status';
+      return;
+    }
+    try {
+      const data = JSON.parse(raw);
+      renderData(data);
+      statusEl.textContent = 'Angezeigt.';
+      statusEl.className = 'status ok';
+    } catch (e) {
+      statusEl.textContent = 'Ungültiges JSON: ' + e.message;
+      statusEl.className = 'status';
+    }
+  }
+
+  document.getElementById('renderBtn').addEventListener('click', tryRender);
+  document.getElementById('sampleBtn').addEventListener('click', () => {
+    input.value = JSON.stringify(SAMPLE, null, 2);
+    tryRender();
+  });
+
+  // initial load
+  input.value = JSON.stringify(SAMPLE, null, 2);
+  renderData(SAMPLE);
+</script>
+</body>
+</html>

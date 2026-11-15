@@ -1,0 +1,27 @@
+---
+name: Solarmanager
+description: PV, Verbrauch, Netz, Batterie
+strategy: polling
+polling_url: http://{{ gateway_ip }}/v2/point
+polling_verb: get
+polling_headers: X-API-Key={{ api_key }}
+refresh_interval: 15
+no_screen_padding: 'no'
+dark_mode: 'no'
+framework_version: latest
+custom_fields:
+- keyname: gateway_ip
+  field_type: string
+  name: Gateway-IP
+  description: IP oder Hostname deines Solarmanager-Gateways im Heimnetz, z. B. 192.168.1.231. Der Server, der das Plugin ausführt, muss diese Adresse erreichen können (BYOS im selben Netz).
+  placeholder: 192.168.1.231
+- keyname: api_key
+  field_type: password
+  name: API-Key
+  description: Lokaler Solarmanager API-Key (Header X-API-Key).
+- keyname: heizung_label
+  field_type: string
+  name: Bezeichnung Wärmepumpe/Boiler
+  description: Beschriftung des vierten Felds.
+  placeholder: Wärmepumpe
+  optional: true

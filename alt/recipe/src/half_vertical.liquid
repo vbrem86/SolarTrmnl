@@ -1,0 +1,35 @@
+{%- assign pv = pW | default: 0 -%}
+{%- assign cons = cW | default: 0 -%}
+{%- assign bc = bcW | default: 0 -%}
+{%- assign bd = bdW | default: 0 -%}
+{%- assign grid = cons | plus: bc | minus: pv | minus: bd -%}
+{%- assign grid_abs = grid | abs -%}
+{%- assign hp = nil -%}
+{%- for d in devices -%}{%- if d.temperature and hp == nil -%}{%- assign hp = d -%}{%- endif -%}{%- endfor -%}
+
+<div class="view view--half_vertical">
+  <div class="layout layout--col gap--medium">
+    <div>
+      <span class="label">PV-Leistung</span>
+      <span class="value value--large">{{ pv | round }}<span class="value--unit">W</span></span>
+    </div>
+    <div>
+      <span class="label">Hausverbrauch</span>
+      <span class="value value--large">{{ cons | round }}<span class="value--unit">W</span></span>
+    </div>
+    <div>
+      <span class="label">{% if grid >= 0 %}Netzbezug{% else %}Einspeisung{% endif %}</span>
+      <span class="value value--large">{{ grid_abs | round }}<span class="value--unit">W</span></span>
+    </div>
+    {% if hp %}
+    <div>
+      <span class="label">{{ heizung_label | default: "Wärmepumpe" }}</span>
+      <span class="value value--large">{{ hp.temperature | round: 1 }}<span class="value--unit">°C</span></span>
+    </div>
+    {% endif %}
+  </div>
+  <div class="title_bar">
+    <span class="title">Solarmanager</span>
+    <span class="instance">{{ t | date: "%H:%M" }}</span>
+  </div>
+</div>

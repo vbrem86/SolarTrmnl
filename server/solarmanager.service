@@ -1,0 +1,23 @@
+[Unit]
+Description=Solarmanager Server fuer TRMNL
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=pi
+WorkingDirectory=/home/pi/solarmanager-trmnl/server
+EnvironmentFile=/home/pi/solarmanager-trmnl/server/.env
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/usr/bin/python3 /home/pi/solarmanager-trmnl/server/solarmanager_byos.py
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+
+# Installation auf dem Raspberry:
+#   sudo cp solarmanager.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now solarmanager
+#   journalctl -u solarmanager -f
+# Benutzer "pi" und die Pfade bei Bedarf anpassen.

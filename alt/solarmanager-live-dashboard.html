@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>Solarmanager · Live-Dashboard</title>
+<style>
+  :root {
+    --paper: #ffffff;
+    --ink: #000000;
+    --ink-soft: #4a4a4a;
+    --ink-faint: #9a9a9a;
+    --bg: #e9e9e6;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: -apple-system, "Helvetica Neue", Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  body {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 32px 16px 64px;
+  }
+  .device {
+    width: min(860px, 94vw);
+    background: #d9d9d6;
+    border-radius: 22px;
+    padding: 22px;
+    box-shadow: 0 1px 0 rgba(255,255,255,0.6) inset, 0 18px 40px rgba(0,0,0,0.18);
+  }
+  .screen {
+    background: var(--paper);
+    border-radius: 6px;
+    aspect-ratio: 800 / 480;
+    width: 100%;
+    position: relative;
+    overflow: hidden;
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,0.06);
+  }
+  .content {
+    position: absolute; inset: 0;
+    padding: clamp(18px, 3.4vw, 34px);
+    display: flex;
+    flex-direction: column;
+    font-family: "Courier New", ui-monospace, monospace;
+  }
+  .top-row {
+    display: flex; justify-content: space-between; align-items: baseline;
+    border-bottom: 3px solid var(--ink);
+    padding-bottom: clamp(6px, 1vw, 12px);
+    margin-bottom: clamp(10px, 2vw, 20px);
+  }
+  .site-name { font-size: clamp(14px, 2.4vw, 20px); font-weight: 700; }
+  .timestamp { font-size: clamp(10px, 1.5vw, 13px); color: var(--ink-soft); }
+  .grid {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    gap: clamp(10px, 1.6vw, 18px);
+  }
+  .cell {
+    border: 2px solid var(--ink); border-radius: 4px;
+    padding: clamp(8px, 1.6vw, 16px);
+    display: flex; flex-direction: column; justify-content: center;
+    position: relative;
+  }
+  .cell .label {
+    font-size: clamp(9px, 1.3vw, 12px); letter-spacing: 0.06em;
+    color: var(--ink-soft); margin-bottom: clamp(4px, 1vw, 8px);
+  }
+  .cell .value { font-size: clamp(22px, 4.6vw, 42px); font-weight: 700; line-height: 1; }
+  .cell .value .unit { font-size: 0.42em; font-weight: 400; margin-left: 4px; }
+  .cell .sub { margin-top: clamp(4px, 1vw, 8px); font-size: clamp(9px, 1.3vw, 12px); color: var(--ink-soft); }
+  .cell.flag::before {
+    content: attr(data-flag);
+    position: absolute; top: clamp(6px, 1.2vw, 10px); right: clamp(8px, 1.4vw, 14px);
+    font-size: clamp(8px, 1.2vw, 11px); letter-spacing: 0.05em;
+    border: 1px solid var(--ink); border-radius: 3px; padding: 1px 6px;
+  }
+  .cell.flag[data-flag=""]::before { display: none; }
+  .foot { margin-top: clamp(8px, 1.4vw, 14px); font-size: clamp(9px, 1.3vw, 12px); color: var(--ink-faint); text-align: right; }
+
+  .panel {
+    width: min(860px, 94vw);
+    margin-top: 28px;
+    background: #fff;
+    border: 1px solid #d8d8d5;
+    border-radius: 10px;
+    padding: 18px 20px 20px;
+  }
+  .panel h2 { font-size: 13px; letter-spacing: 0.03em; color: #555; margin: 0 0 12px; font-weight: 600; }
+  .fields { display: flex; gap: 12px; flex-wrap: wrap; }
+  .field { flex: 1; min-width: 220px; }
+  .field label { display: block; font-size: 11.5px; color: #666; margin-bottom: 4px; }
+  .field input {
+    width: 100%;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 12.5px;
+    padding: 9px 10px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    background: #fafafa;
+    color: #222;
+  }
+  .row { display: flex; gap: 10px; align-items: center; margin-top: 14px; flex-wrap: wrap; }
+  button {
+    font-family: inherit; font-size: 13px; font-weight: 600;
+    padding: 9px 16px; border-radius: 6px; border: none; cursor: pointer;
+  }
+  button.primary { background: #111; color: #fff; }
+  button.primary:hover { background: #000; }
+  button.ghost { background: transparent; color: #444; border: 1px solid #ccc; }
+  button.ghost:hover { border-color: #999; }
+  label.check { font-size: 12.5px; color: #444; display: flex; align-items: center; gap: 6px; }
+  .status { font-size: 12.5px; color: #7a1f1f; }
+  .status.ok { color: #1f6d3a; }
+  .status.pending { color: #8a6d1f; }
+  .hint { font-size: 11.5px; color: #8a8a8a; margin-top: 12px; line-height: 1.55; }
+  code { background: #f0f0ee; padding: 1px 5px; border-radius: 3px; font-size: 11px; }
+  a { color: #333; }
+</style>
+</head>
+<body>
+
+  <div class="device">
+    <div class="screen">
+      <div class="content" id="content">
+        <div class="top-row">
+          <span class="site-name">Solarmanager</span>
+          <span class="timestamp" id="ts">–</span>
+        </div>
+        <div class="grid">
+          <div class="cell"><span class="label">PV-LEISTUNG</span><span class="value" id="pv">–</span></div>
+          <div class="cell"><span class="label">HAUSVERBRAUCH</span><span class="value" id="cons">–</span></div>
+          <div class="cell"><span class="label">NETZ</span><span class="value" id="grid">–</span><span class="sub" id="gridSub"></span></div>
+          <div class="cell flag" id="hpCell" data-flag=""><span class="label">WÄRMEPUMPE</span><span class="value" id="hp">–</span><span class="sub" id="hpSub"></span></div>
+        </div>
+        <div class="foot" id="battFoot">Batterie: –</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>VERBINDUNG</h2>
+    <div class="fields">
+      <div class="field">
+        <label>Proxy-Adresse (siehe solarmanager_proxy.py)</label>
+        <input id="proxyUrl" value="http://localhost:8765/point">
+      </div>
+    </div>
+    <div class="row">
+      <button class="primary" id="startBtn">Verbinden &amp; live anzeigen</button>
+      <button class="ghost" id="stopBtn">Pausieren</button>
+      <label class="check"><input type="checkbox" id="autoRefresh" checked> alle <input id="interval" value="10" style="width:40px; padding:4px 6px;"> Sek. aktualisieren</label>
+      <span class="status" id="status"></span>
+    </div>
+    <div class="hint">
+      Diese Seite braucht den kleinen lokalen Proxy (<code>solarmanager_proxy.py</code>),
+      weil dein Gateway keine CORS-Freigabe schickt und der Browser sonst die
+      Antwort blockiert. Trag IP und API-Key im Python-Skript ein, starte es
+      mit <code>python3 solarmanager_proxy.py</code> und lass es im Terminal
+      laufen, solange du das Dashboard offen hast.
+    </div>
+  </div>
+
+<script>
+  const statusEl = document.getElementById('status');
+  let timer = null;
+
+  function fmtTime(iso) {
+    try {
+      return new Date(iso).toLocaleString('de-CH', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    } catch (e) { return iso || '–'; }
+  }
+
+  function findHeatpump(devices) {
+    if (!Array.isArray(devices)) return null;
+    return devices.find(d => 'temperature' in d && 'operationState' in d) || null;
+  }
+
+  function renderData(data) {
+    const pW = data.pW ?? 0;
+    const cW = data.cW ?? 0;
+    const bcW = data.bcW ?? 0;
+    const bdW = data.bdW ?? 0;
+    const grid = cW + bcW - pW - bdW;
+    const gridAbs = Math.abs(Math.round(grid));
+    const gridLabel = grid >= 0 ? 'Bezug' : 'Einspeisung';
+
+    let battLine = 'Standby';
+    if (bcW > 0) battLine = '+' + bcW + ' W laden';
+    else if (bdW > 0) battLine = '−' + bdW + ' W entladen';
+
+    const hp = findHeatpump(data.devices);
+    const hpTemp = hp ? Number(hp.temperature).toFixed(1) : '–';
+    const hpActive = hp ? (hp.activeDevice === 1) : false;
+    const hpSignal = hp ? hp.signal : '';
+
+    document.getElementById('ts').textContent = fmtTime(data.t);
+    document.getElementById('pv').innerHTML = Math.round(pW) + '<span class="unit">W</span>';
+    document.getElementById('cons').innerHTML = Math.round(cW) + '<span class="unit">W</span>';
+    document.getElementById('grid').innerHTML = gridAbs + '<span class="unit">W</span>';
+    document.getElementById('gridSub').textContent = gridLabel;
+    document.getElementById('hp').innerHTML = hpTemp + '<span class="unit">°C</span>';
+    document.getElementById('hpSub').textContent = hpActive ? 'aktiv' : 'inaktiv';
+    document.getElementById('hpCell').setAttribute('data-flag', hpSignal === 'connected' ? '' : 'GETRENNT');
+    document.getElementById('battFoot').textContent = 'Batterie: ' + battLine;
+  }
+
+  async function fetchAndRender() {
+    const proxyUrl = document.getElementById('proxyUrl').value.trim();
+    if (!proxyUrl) { statusEl.textContent = 'Bitte Proxy-Adresse eintragen.'; statusEl.className = 'status'; return; }
+
+    statusEl.textContent = 'Lade…';
+    statusEl.className = 'status pending';
+
+    try {
+      const res = await fetch(proxyUrl);
+      if (!res.ok) {
+        statusEl.textContent = `Fehler: HTTP ${res.status}`;
+        statusEl.className = 'status';
+        return;
+      }
+      const data = await res.json();
+      if (data.error) {
+        statusEl.textContent = 'Proxy meldet: ' + data.error;
+        statusEl.className = 'status';
+        return;
+      }
+      renderData(data);
+      statusEl.textContent = 'Verbunden — zuletzt aktualisiert ' + new Date().toLocaleTimeString('de-CH');
+      statusEl.className = 'status ok';
+    } catch (e) {
+      statusEl.textContent = 'Proxy nicht erreichbar — läuft solarmanager_proxy.py?';
+      statusEl.className = 'status';
+    }
+  }
+
+  function startLoop() {
+    stopLoop();
+    fetchAndRender();
+    const auto = document.getElementById('autoRefresh').checked;
+    if (auto) {
+      const secs = Math.max(3, parseInt(document.getElementById('interval').value, 10) || 10);
+      timer = setInterval(fetchAndRender, secs * 1000);
+    }
+  }
+
+  function stopLoop() {
+    if (timer) { clearInterval(timer); timer = null; }
+  }
+
+  document.getElementById('startBtn').addEventListener('click', startLoop);
+  document.getElementById('stopBtn').addEventListener('click', () => {
+    stopLoop();
+    statusEl.textContent = 'Pausiert.';
+    statusEl.className = 'status';
+  });
+</script>
+</body>
+</html>

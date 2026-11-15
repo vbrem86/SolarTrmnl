@@ -1,0 +1,26 @@
+{%- assign pv = pW | default: 0 -%}
+{%- assign cons = cW | default: 0 -%}
+{%- assign bc = bcW | default: 0 -%}
+{%- assign bd = bdW | default: 0 -%}
+{%- assign grid = cons | plus: bc | minus: pv | minus: bd -%}
+{%- assign grid_abs = grid | abs -%}
+
+<div class="view view--quadrant">
+  <div class="layout layout--col gap--small">
+    <div>
+      <span class="label label--small">PV</span>
+      <span class="value value--medium">{{ pv | round }}<span class="value--unit">W</span></span>
+    </div>
+    <div>
+      <span class="label label--small">Verbrauch</span>
+      <span class="value value--medium">{{ cons | round }}<span class="value--unit">W</span></span>
+    </div>
+    <div>
+      <span class="label label--small">{% if grid >= 0 %}Bezug{% else %}Einspeisung{% endif %}</span>
+      <span class="value value--medium">{{ grid_abs | round }}<span class="value--unit">W</span></span>
+    </div>
+  </div>
+  <div class="title_bar">
+    <span class="title">Solarmanager</span>
+  </div>
+</div>

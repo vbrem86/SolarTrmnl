@@ -1,0 +1,11 @@
+# Solarmanager — Form Fields (Webhook-Variante)
+# Gateway-IP und API-Key stehen im lokalen Skript solarmanager_to_trmnl.py,
+# nicht in TRMNL. Hier bleibt nur, was die Anzeige betrifft.
+
+- keyname: heizung_label
+  field_type: string
+  name: Bezeichnung Wärmepumpe/Boiler
+  description: Freier Text für das vierte Feld, z. B. "Wärmepumpe" oder "Boiler".
+  placeholder: "Wärmepumpe"
+  optional: true
+  default: "Wärmepumpe"

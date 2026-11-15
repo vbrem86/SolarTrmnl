@@ -1,0 +1,11 @@
+# Zugangsdaten und persönliche Einstellungen
+.env
+# lokale Editor- und Systemdateien
+.vscode/
+.idea/
+.DS_Store
+# Erzeugtes
+__pycache__/
+*.pyc
+preview.png
+emulator.png
